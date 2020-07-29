@@ -83,7 +83,6 @@ python-telegram-bot==12.8
 PyTrie3==0.2
 pytz==2019.2
 pytzdata==2019.3
-pywin32==225
 pywinpty==0.5.5
 pyzmq==18.1.0
 qtconsole==4.5.5
