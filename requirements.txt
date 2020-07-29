@@ -5,7 +5,7 @@ attrs==19.1.0
 Babel==2.7.0
 backcall==0.1.0
 bitarray==1.2.1
-bleach==3.1.0
+bleach==3.1.4
 BTrees==4.6.1
 certifi==2019.6.16
 cffi==1.13.2
