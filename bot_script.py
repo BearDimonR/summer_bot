@@ -41,6 +41,7 @@ def launch_server():
 
 def launch():
     schedule_start()
+    init_files(bot_instance)
     while True:
         is_alive = True
         schedule_thread = threading.Thread(target=schedule_check, name='schedule_thread', args=(lambda: is_alive,))

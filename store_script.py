@@ -58,6 +58,8 @@ def restart_bot(bot, msg):
         user_message = bot.send_document(msg.chat.id, io.StringIO(str_data))
         day_message = bot.send_document(msg.chat.id, io.StringIO(str_data))
         connection_message = bot.send_document(msg.chat.id, io.StringIO(str_data))
+        # save files
+        save_data(bot)
         # save admin properties
         save_properties()
         # bot was started
