@@ -25,7 +25,7 @@ db_cursor = db_connection.cursor()
 lock_database = threading.Lock()
 lock_file_save = threading.Lock()
 
-data_path = os.path.join(os.path.join(os.path.dirname(__file__), 'resources'), 'bot.properties')
+data_path = os.path.join(os.path.dirname(__file__), 'bot.properties')
 
 
 def restart_bot(bot, msg):

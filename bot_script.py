@@ -1,19 +1,42 @@
 from time import sleep
-from src.store_script import *
-from src.calendar_script import *
-from src.msg_copy_script import *
+from store_script import *
+from calendar_script import *
+from msg_copy_script import *
 
 import schedule
 import telebot
 import threading
 import hashlib
 import regex as re
+import os
+from flask import Flask, request
 
-bot_instance = telebot.TeleBot('1153271700:AAHiKc2o1vsZ0nKS8BuMoM3WMOoGYplG3zA')
+TOKEN = '1153271700:AAHiKc2o1vsZ0nKS8BuMoM3WMOoGYplG3zA'
+
+server = Flask(__name__)
+
+bot_instance = telebot.TeleBot(TOKEN)
 restart_password = '5a82d6497f6e915d57609916f2423e2b'
 admin_password = '9f176ec57c09dcc7e9f082cae646403a'
 
 messages_to_delete = []
+
+
+@server.route('/' + TOKEN, methods=['POST'])
+def get_message():
+    bot_instance.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    return "!", 200
+
+
+@server.route("/")
+def web_hook():
+    bot_instance.remove_webhook()
+    bot_instance.set_webhook(url=' https://summer-activity-bot.herokuapp.com/' + TOKEN)
+    return "!", 200
+
+
+def launch_server():
+    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
 
 
 def launch():
@@ -626,3 +649,4 @@ def back_tasks(query):
 
 if __name__ == '__main__':
     launch()
+    # launch_server()
