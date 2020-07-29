@@ -1,6 +1,5 @@
 flask
 schedule
-telegram
 telebot
 regex
 pyTelegramBotAPI
