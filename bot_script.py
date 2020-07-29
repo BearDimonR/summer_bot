@@ -1,3 +1,4 @@
+import sys
 from time import sleep
 from store_script import *
 from calendar_script import *
@@ -48,10 +49,11 @@ def launch():
         try:
             schedule_thread.start()
             bot_instance.polling(interval=1, timeout=60)
-        except Exception as e:
+        except:
             is_alive = False
             schedule_thread.join()
             bot_instance.stop_polling()
+            e = sys.exc_info()[0]
             bot_instance.send_message(get_chat_id(), '#ERROR\n\n' + str(e))
             make_backup(bot_instance)
             save_data(bot_instance)
