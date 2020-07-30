@@ -10,6 +10,7 @@ import threading
 import hashlib
 import regex as re
 import os
+import logging
 from flask import Flask, request
 from datetime import date as d
 
@@ -38,12 +39,14 @@ def web_hook():
 
 
 def launch_server():
-    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
     init_files(bot_instance)
     schedule_start()
     is_alive = True
     schedule_thread = threading.Thread(target=schedule_check, name='schedule_thread', args=(lambda: is_alive,))
     schedule_thread.start()
+    server.logger().setLevel(logging.WARNING)
+    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
+
 
 
 def launch():
@@ -642,7 +645,8 @@ def check_save(query):
         mark = 5
     save_task_result(bot_instance, conn_id, mark)
     bot_instance.answer_callback_query(query.id, text="Успішно")
-    bot_instance.send_message(chat_id, text='Завдання ' + date + ' оцінено. Ваша оцінка: ' + get_calendar_results()[mark])
+    bot_instance.send_message(chat_id,
+                              text='Завдання ' + date + ' оцінено. Ваша оцінка: ' + get_calendar_results()[mark])
     query.data = 'check next tasks:' + date
     check_next_tasks(query)
 
@@ -656,17 +660,19 @@ def check_next_tasks(query):
     keyboard = telebot.types.InlineKeyboardMarkup()
     if connection is not None:
         keyboard.row(
-            telebot.types.InlineKeyboardButton('Done', callback_data='check save:4:' + str(connection[0]) + ':' + date + ':' + str(connection[1])),
+            telebot.types.InlineKeyboardButton('Done', callback_data='check save:4:' + str(
+                connection[0]) + ':' + date + ':' + str(connection[1])),
             telebot.types.InlineKeyboardButton('Almost',
-                                               callback_data='check save:3:' + str(connection[0]) + ':' + date + ':' + str(connection[1])),
+                                               callback_data='check save:3:' + str(
+                                                   connection[0]) + ':' + date + ':' + str(connection[1])),
             telebot.types.InlineKeyboardButton('Failed',
-                                               callback_data='check save:2:' + str(connection[0]) + ':' + date + ':' + str(connection[1])))
+                                               callback_data='check save:2:' + str(
+                                                   connection[0]) + ':' + date + ':' + str(connection[1])))
     keyboard.row(telebot.types.InlineKeyboardButton('Back', callback_data='check tasks'))
     bot_instance.edit_message_reply_markup(query.message.chat.id,
                                            query.message.message_id,
                                            reply_markup=keyboard)
     if connection is not None:
-
         messages_to_delete.append(send_copy(query.message.chat.id, get_chat_id(), day[4]))
         messages_to_delete.append(bot_instance.forward_message(query.message.chat.id, get_chat_id(), connection[4]))
 
