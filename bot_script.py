@@ -11,6 +11,7 @@ import hashlib
 import regex as re
 import os
 from flask import Flask, request
+from datetime import date as d
 
 TOKEN = '1153271700:AAHiKc2o1vsZ0nKS8BuMoM3WMOoGYplG3zA'
 
@@ -37,12 +38,12 @@ def web_hook():
 
 
 def launch_server():
+    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
     init_files(bot_instance)
     schedule_start()
     is_alive = True
     schedule_thread = threading.Thread(target=schedule_check, name='schedule_thread', args=(lambda: is_alive,))
     schedule_thread.start()
-    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
 
 
 def launch():
@@ -637,7 +638,7 @@ def check_save(query):
     conn_id = spl[2]
     mark = int(spl[1])
     # TODO check this
-    if mark == 4 and datetime.datetime.fromisoformat(date).date() < datetime.datetime.now().date():
+    if mark == 4 and d.fromisoformat(date) < datetime.datetime.now().date():
         mark = 5
     save_task_result(bot_instance, conn_id, mark)
     bot_instance.answer_callback_query(query.id, text="Успішно")

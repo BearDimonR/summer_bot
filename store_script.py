@@ -2,6 +2,7 @@ import datetime
 
 import telebot
 from telebot.types import InputMediaDocument
+from datetime import date as d
 import threading
 import sqlite3
 import json
@@ -254,7 +255,7 @@ def check_connections(bot):
     delta = datetime.timedelta(days=1)
     for user in users:
         chat_id = user[0]
-        date = datetime.datetime.fromisoformat(user[1]).date()
+        date = d.fromisoformat(user[1])
         while date <= now:
             try:
                 day_id = days_dict[str(date)]
