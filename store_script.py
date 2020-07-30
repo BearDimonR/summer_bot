@@ -40,6 +40,11 @@ def restart_bot(bot, msg):
     global calendar_pattern_id
     global calendar_result_texts
     if files_chat_id is None:
+        global started
+        if check_file_properties(bot, msg):
+            started = True
+            save_properties()
+            return
         # set chat_id
         files_chat_id = msg.chat.id
         # send empty info
@@ -60,10 +65,9 @@ def restart_bot(bot, msg):
         connection_message = bot.send_document(msg.chat.id, io.StringIO(str_data))
         # save files
         save_data(bot)
-        # save admin properties
+        # properties save
         save_properties()
         # bot was started
-        global started
         started = True
     elif is_active():
         save_data(bot)
@@ -72,6 +76,40 @@ def restart_bot(bot, msg):
         restart_bot(bot, msg)
     else:
         raise FileNotFoundError()
+
+
+def check_file_properties(bot, msg: telebot.types.Message):
+    if msg.content_type != 'document':
+        return False
+    data = json.loads(get_data(bot, msg))
+    global files_chat_id
+    files_chat_id = data['files_chat_id']
+    global info_message_id
+    info_message_id = data['info_message_id']
+    global admin_chat_ids
+    admin_chat_ids = data['admin_chat_ids']
+    global start_message_id
+    start_message_id = data['start_message_id']
+    global calendar_message_id
+    calendar_message_id = data['calendar_message_id']
+    global calendar_pattern_id
+    calendar_pattern_id = data['calendar_pattern_id']
+    global calendar_result_texts
+    texts = json.loads(data['calendar_result_texts'])
+    calendar_result_texts = dict()
+    calendar_result_texts[5] = texts['5']
+    calendar_result_texts[4] = texts['4']
+    calendar_result_texts[3] = texts['3']
+    calendar_result_texts[2] = texts['2']
+    calendar_result_texts[1] = texts['1']
+    calendar_result_texts[0] = texts['0']
+    global user_message
+    user_message = telebot.types.Message.de_json(data['user_message'])
+    global day_message
+    day_message = telebot.types.Message.de_json(data['day_message'])
+    global connection_message
+    connection_message = telebot.types.Message.de_json(data['connection_message'])
+    return True
 
 
 def init_files(bot):
@@ -126,13 +164,15 @@ def init_files(bot):
         load_data(bot)
         started = True
         check_connections(bot)
+        with open(data_path) as json_file:
+            bot.send_document(files_chat_id, data=json_file)
     except KeyError:
         started = False
 
 
 def make_backup(bot):
     save_data(bot)
-    bot.send_message(files_chat_id, '.............\nBackUp ' + str(datetime.datetime.now()) + '.............')
+    bot.send_message(files_chat_id, '.............\nBackUp ' + str(datetime.datetime.now()))
     bot.forward_message(files_chat_id, files_chat_id, user_message.message_id)
     bot.forward_message(files_chat_id, files_chat_id, day_message.message_id)
     bot.forward_message(files_chat_id, files_chat_id, connection_message.message_id)
@@ -227,8 +267,8 @@ def check_connections(bot):
     if len(add) != 0:
         db_cursor.executemany("INSERT INTO user_task_connection (chat_id, day_id) VALUES (?,?)", add)
         db_connection.commit()
-        lock_database.release()
         threading.Thread(target=save_connection, args=(bot,)).start()
+    lock_database.release()
 
 
 def add_connections(bot):

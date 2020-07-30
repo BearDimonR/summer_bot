@@ -14,33 +14,33 @@ from flask import Flask, request
 
 TOKEN = '1153271700:AAHiKc2o1vsZ0nKS8BuMoM3WMOoGYplG3zA'
 
-server = Flask(__name__)
-
 bot_instance = telebot.TeleBot(TOKEN)
 restart_password = '5a82d6497f6e915d57609916f2423e2b'
 admin_password = '9f176ec57c09dcc7e9f082cae646403a'
 
 messages_to_delete = []
 
+#server = Flask(__name__)
 
-@server.route('/' + TOKEN, methods=['POST'])
-def get_message():
-    bot_instance.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
-    return "!", 200
-
-
-@server.route("/")
-def web_hook():
-    bot_instance.remove_webhook()
-    bot_instance.set_webhook(url=' https://summer-activity-bot.herokuapp.com/' + TOKEN)
-    return "!", 200
-
-
-def launch_server():
-    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
+# @server.route('/' + TOKEN, methods=['POST'])
+# def get_message():
+#     bot_instance.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+#     return "!", 200
+#
+#
+# @server.route("/")
+# def web_hook():
+#     bot_instance.remove_webhook()
+#     bot_instance.set_webhook(url='https://agile-headland-39464.herokuapp.com/' + TOKEN)
+#     return "!", 200
+#
+#
+# def launch_server():
+#     server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
 
 
 def launch():
+    global bot_instance
     schedule_start()
     init_files(bot_instance)
     while True:
@@ -52,8 +52,10 @@ def launch():
         except:
             is_alive = False
             schedule_thread.join()
-            bot_instance.stop_polling()
+            bot_instance.stop_bot()
             e = sys.exc_info()[0]
+            sleep(5)
+            bot_instance = telebot.TeleBot(TOKEN)
             bot_instance.send_message(get_chat_id(), '#ERROR\n\n' + str(e))
             make_backup(bot_instance)
             save_data(bot_instance)
@@ -168,9 +170,14 @@ def show_admin_panel(chat_id):
 
 def check_restart_pass(msg):
     if hashlib.md5(msg.text.encode('utf8')).hexdigest() == restart_password:
-        restart_bot(bot_instance, msg)
+        bot_instance.send_message(chat_id=msg.chat.id, text='File:')
+        bot_instance.register_next_step_handler(msg, restart_with_property)
     else:
         bot_instance.send_message(chat_id=msg.chat.id, text='Wrong password.')
+
+
+def restart_with_property(msg):
+    restart_bot(bot_instance, msg)
 
 
 def check_admin_pass(msg):
@@ -201,16 +208,17 @@ def calendar_command(msg):
     dates_res = get_user_date_result(msg.chat.id)
     forwarded_msg = bot_instance.forward_message(get_chat_id(), get_chat_id(), get_calendar_message_id())
     messages_to_delete.append(forwarded_msg)
-    forwarded_pattern = bot_instance.forward_message(get_chat_id(), get_chat_id(), get_calendar_pattern_id())
-    messages_to_delete.append(forwarded_pattern)
+    pattern_msg = bot_instance.forward_message(get_chat_id(), get_chat_id(), get_calendar_pattern_id())
+    messages_to_delete.append(pattern_msg)
+    threading.Thread(target=delete_all).start()
+    pattern_text = pattern_msg.text
     results_dict = get_calendar_results()
     text = str(forwarded_msg.text)
     pattern = ''
     for date_res in dates_res:
-        pattern += str(forwarded_pattern.text) \
+        pattern += str(pattern_text) \
             .replace('[date]', date_res[0]) \
             .replace('[result]', str(results_dict[date_res[1]]))
-    threading.Thread(target=delete_all).start()
     text = text.replace('[pattern]', pattern)
     bot_instance.send_message(msg.chat.id, text, reply_markup=telebot.types.InlineKeyboardMarkup()
                               .row(telebot.types.InlineKeyboardButton('Close',
@@ -299,7 +307,7 @@ def edit_days(query):
         messages_to_delete.append(bot_instance.edit_message_text(chat_id=query.message.chat.id,
                                                                  text='Days Edit\n\nSelect day:',
                                                                  message_id=query.message.message_id,
-                                                                 reply_markup=create_calendar().to_json()))
+                                                                 reply_markup=create_calendar()))
         return
     data = str(query.data).split(':')
     messages_to_delete.append(bot_instance.send_message(query.message.chat.id,
@@ -389,13 +397,14 @@ def clear_before(query):
 
 
 def delete_all():
-    messages_to_delete.reverse()
-    for i in messages_to_delete:
+    new_list = messages_to_delete.copy()
+    messages_to_delete.clear()
+    new_list.reverse()
+    for i in new_list:
         try:
             bot_instance.delete_message(i.chat.id, i.message_id)
         except telebot.apihelper.ApiException:
             pass
-    messages_to_delete.clear()
 
 
 @bot_instance.callback_query_handler(lambda query: 'edit info' in query.data)

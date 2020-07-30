@@ -1,7 +1,7 @@
 import calendar
 import datetime
 
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
 
 
 def create_callback_data(action, year, month, day):
@@ -47,7 +47,10 @@ def create_calendar(year=None, month=None):
            InlineKeyboardButton("Back", callback_data='back'),
            InlineKeyboardButton(">", callback_data=create_callback_data("NEXT-MONTH", year, month, day))]
     keyboard.append(row)
-    return InlineKeyboardMarkup(keyboard)
+    markup = InlineKeyboardMarkup()
+    for row in keyboard:
+        markup.row(*row)
+    return markup
 
 
 def process_calendar_selection(bot, query):
@@ -67,13 +70,13 @@ def process_calendar_selection(bot, query):
         bot.edit_message_text(text=query.message.text,
                               chat_id=query.message.chat.id,
                               message_id=query.message.message_id,
-                              reply_markup=create_calendar(int(pre.year), int(pre.month)).to_json())
+                              reply_markup=create_calendar(int(pre.year), int(pre.month)))
     elif action == "NEXT-MONTH":
         ne = curr + datetime.timedelta(days=31)
         bot.edit_message_text(text=query.message.text,
                               chat_id=query.message.chat.id,
                               message_id=query.message.message_id,
-                              reply_markup=create_calendar(int(ne.year), int(ne.month)).to_json())
+                              reply_markup=create_calendar(int(ne.year), int(ne.month)))
     else:
         bot.answer_callback_query(callback_query_id=query.id, text="Something went wrong!")
     return ret_data
