@@ -48,7 +48,6 @@ def launch_server():
     server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
 
 
-
 def launch():
     global bot_instance
     schedule_start()
