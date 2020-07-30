@@ -20,23 +20,29 @@ admin_password = '9f176ec57c09dcc7e9f082cae646403a'
 
 messages_to_delete = []
 
-#server = Flask(__name__)
+server = Flask(__name__)
 
-# @server.route('/' + TOKEN, methods=['POST'])
-# def get_message():
-#     bot_instance.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
-#     return "!", 200
-#
-#
-# @server.route("/")
-# def web_hook():
-#     bot_instance.remove_webhook()
-#     bot_instance.set_webhook(url='https://agile-headland-39464.herokuapp.com/' + TOKEN)
-#     return "!", 200
-#
-#
-# def launch_server():
-#     server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
+
+@server.route('/' + TOKEN, methods=['POST'])
+def get_message():
+    bot_instance.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    return "!", 200
+
+
+@server.route("/")
+def web_hook():
+    bot_instance.remove_webhook()
+    bot_instance.set_webhook(url='https://agile-headland-39464.herokuapp.com/' + TOKEN)
+    return "!", 200
+
+
+def launch_server():
+    init_files(bot_instance)
+    schedule_start()
+    is_alive = True
+    schedule_thread = threading.Thread(target=schedule_check, name='schedule_thread', args=(lambda: is_alive,))
+    schedule_thread.start()
+    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
 
 
 def launch():
@@ -48,8 +54,8 @@ def launch():
         schedule_thread = threading.Thread(target=schedule_check, name='schedule_thread', args=(lambda: is_alive,))
         try:
             schedule_thread.start()
-            bot_instance.polling(interval=1, timeout=60)
-        except:
+            bot_instance.polling(none_stop=True, timeout=150)
+        except BaseException or telebot.apihelper.ApiException:
             is_alive = False
             schedule_thread.join()
             bot_instance.stop_bot()
@@ -70,9 +76,9 @@ def schedule_check(is_alive):
 
 def schedule_start():
     schedule.every(6).hours.do(make_backup, bot_instance)
-    schedule.every().day.at("08:30").do(send_scheduled_msgs, 2)  # 8:30
-    schedule.every().day.at("15:00").do(send_scheduled_msgs, 3)  # 15:00
-    schedule.every().day.at("21:30").do(send_scheduled_msgs, 4)  # 21:30
+    schedule.every().day.at("08:30").do(send_scheduled_msgs, 1)  # 8:30
+    schedule.every().day.at("15:00").do(send_scheduled_msgs, 2)  # 15:00
+    schedule.every().day.at("21:30").do(send_scheduled_msgs, 3)  # 21:30
     schedule.every().day.at("21:31").do(add_connections, bot_instance)
 
 
@@ -199,9 +205,12 @@ def accept_handler(callback_query):
              telebot.types.KeyboardButton(text='/calendar'))
     if not is_authorized(callback_query.message.chat.id):
         bot_instance.send_message(chat_id=callback_query.message.chat.id,
-                                  text='Команди розблоковані.',
+                                  text='Команди розблоковані!',
                                   reply_markup=keyboard)
         threading.Thread(target=register_user, args=(bot_instance, callback_query.message.chat.id,)).start()
+    bot_instance.send_message(chat_id=callback_query.message.chat.id,
+                              text='Вітаю з поверненням!',
+                              reply_markup=keyboard)
 
 
 def calendar_command(msg):
@@ -268,8 +277,9 @@ def calendar_day_info(chat_id, date=str(datetime.datetime.now().date())):
                 keyboard = None
             bot_instance.send_message(chat_id, 'Day ' + date + ':')
             send_copy(chat_id, get_chat_id(), day[4], keyboard=keyboard)
-            bot_instance.send_message(chat_id, 'Your reply:')
+            bot_instance.send_message(chat_id, 'Ваше завдання:')
             bot_instance.forward_message(chat_id, get_chat_id(), connection[4])
+            bot_instance.send_message(chat_id, 'Оцінка: ' + get_user_result(chat_id, date))
         else:
             send_copy(chat_id, get_chat_id(), day[4], keyboard=keyboard)
 
@@ -299,6 +309,8 @@ def hand_over_task(query):
 def hand_over_task_save(msg, date):
     forwarded_msg = bot_instance.forward_message(get_chat_id(), msg.chat.id, msg.message_id)
     save_task_hand_over(bot_instance, msg.chat.id, date, forwarded_msg.message_id)
+    bot_instance.send_message(chat_id=msg.chat.id,
+                              text='Завдання відправлено!')
 
 
 @bot_instance.callback_query_handler(lambda query: 'edit days' in str(query.data))
@@ -490,11 +502,13 @@ def edit_calendar(query, chat_id=None):
         messages_to_delete.append(bot_instance.send_message(chat_id=query.message.chat.id,
                                                             text='Send new message in form:\nText\n[pattern]\nText\n'))
         bot_instance.register_next_step_handler(query.message, edit_calendar_message_save)
+        bot_instance.answer_callback_query(query.id)
     elif query.data == 'edit calendar:pattern':
         messages_to_delete.append(bot_instance.send_message(chat_id=query.message.chat.id,
                                                             text='Send new message in form:\n\nFor example:'
                                                                  '\n****\n[date] : [result]\n****\n'))
         bot_instance.register_next_step_handler(query.message, edit_calendar_pattern_save)
+        bot_instance.answer_callback_query(query.id)
     elif query.data == 'edit calendar:result':
         messages_to_delete.append(bot_instance.send_message(chat_id=query.message.chat.id,
                                                             text='Send new message in form:\n\n'
@@ -505,7 +519,7 @@ def edit_calendar(query, chat_id=None):
                                                                  '[not graded:message]\n'
                                                                  '[not send:message]\n'))
         bot_instance.register_next_step_handler(query.message, edit_calendar_result_save)
-    bot_instance.answer_callback_query(query.id)
+        bot_instance.answer_callback_query(query.id)
 
 
 def send_calendar_info(chat_id, msg_id, text):
@@ -547,7 +561,7 @@ def edit_calendar_result_save(msg):
             r'\[done:[\S\s]+\]\n'
             r'\[almost done:[\S\s]+\]\n'
             r'\[failed:[\S\s]+\]\n'
-            r'\[not graded:[\S\s]+\]'
+            r'\[not graded:[\S\s]+\]\n'
             r'\[not send:[\S\s]+\]', str(msg.text)):
         forwarded_msg = bot_instance.forward_message(get_chat_id(), msg.chat.id, msg.message_id)
         save_calendar_result(forwarded_msg)
@@ -576,7 +590,7 @@ def close_admin_panel(query):
 @bot_instance.callback_query_handler(lambda query: 'send message' == query.data)
 def send_message_command(query):
     messages_to_delete.append(bot_instance.send_message(chat_id=query.message.chat.id, text='Message:'))
-    bot_instance.register_next_step_handler(query.message, send_message_thread)
+    bot_instance.register_next_step_handler(query.message, send_message_thread, query)
     bot_instance.answer_callback_query(query.id)
 
 
@@ -607,7 +621,7 @@ def check_tasks(query):
                                        text='Check tasks\nSelect date for check:',
                                        reply_markup=keyboard)
     else:
-        bot_instance.edit_message_text('Your mark:',
+        bot_instance.edit_message_text('Оцініть:',
                                        query.message.chat.id,
                                        query.message.message_id)
         date = str(query.data).split(':')[1]
@@ -618,6 +632,7 @@ def check_tasks(query):
 @bot_instance.callback_query_handler(lambda query: 'check save' in query.data)
 def check_save(query):
     spl = str(query.data).split(':')
+    chat_id = spl[4]
     date = spl[3]
     conn_id = spl[2]
     mark = int(spl[1])
@@ -625,7 +640,8 @@ def check_save(query):
     if mark == 4 and datetime.datetime.fromisoformat(date).date() < datetime.datetime.now().date():
         mark = 5
     save_task_result(bot_instance, conn_id, mark)
-    bot_instance.answer_callback_query(query.id, text="Success")
+    bot_instance.answer_callback_query(query.id, text="Успішно")
+    bot_instance.send_message(chat_id, text='Завдання ' + date + ' оцінено. Ваша оцінка: ' + get_calendar_results()[mark])
     query.data = 'check next tasks:' + date
     check_next_tasks(query)
 
@@ -639,17 +655,18 @@ def check_next_tasks(query):
     keyboard = telebot.types.InlineKeyboardMarkup()
     if connection is not None:
         keyboard.row(
-            telebot.types.InlineKeyboardButton('Done', callback_data='check save:4:' + str(connection[0]) + ':' + date),
+            telebot.types.InlineKeyboardButton('Done', callback_data='check save:4:' + str(connection[0]) + ':' + date + ':' + str(connection[1])),
             telebot.types.InlineKeyboardButton('Almost',
-                                               callback_data='check save:3:' + str(connection[0]) + ':' + date),
+                                               callback_data='check save:3:' + str(connection[0]) + ':' + date + ':' + str(connection[1])),
             telebot.types.InlineKeyboardButton('Failed',
-                                               callback_data='check save:2:' + str(connection[0]) + ':' + date))
+                                               callback_data='check save:2:' + str(connection[0]) + ':' + date + ':' + str(connection[1])))
     keyboard.row(telebot.types.InlineKeyboardButton('Back', callback_data='check tasks'))
     bot_instance.edit_message_reply_markup(query.message.chat.id,
                                            query.message.message_id,
                                            reply_markup=keyboard)
     if connection is not None:
-        messages_to_delete.append(send_copy(query.message.chat.id, get_chat_id(), day[5]))
+
+        messages_to_delete.append(send_copy(query.message.chat.id, get_chat_id(), day[4]))
         messages_to_delete.append(bot_instance.forward_message(query.message.chat.id, get_chat_id(), connection[4]))
 
 
@@ -660,5 +677,5 @@ def back_tasks(query):
 
 
 if __name__ == '__main__':
-    launch()
-    # launch_server()
+    # launch()
+    launch_server()

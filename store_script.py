@@ -343,6 +343,13 @@ def get_calendar_results():
     return calendar_result_texts
 
 
+def get_user_result(chat_id, date):
+    conn = get_user_task_conn(chat_id, date)
+    if conn is None:
+        raise ValueError()
+    return calendar_result_texts[conn[3]]
+
+
 def get_calendar_results_text():
     return str(json.dumps(calendar_result_texts)) \
         .replace('{', '') \
@@ -501,11 +508,12 @@ def save_calendar_result(msg):
     global calendar_result_texts
     text = str(msg.text).replace('\n', '').replace(']', '').split('[')
     text.remove('')
-    calendar_result_texts[4] = text[0].split(':')[1]
-    calendar_result_texts[3] = text[1].split(':')[1]
-    calendar_result_texts[2] = text[2].split(':')[1]
-    calendar_result_texts[1] = text[3].split(':')[1]
-    calendar_result_texts[0] = text[4].split(':')[1]
+    calendar_result_texts[5] = text[0].split(':')[1]
+    calendar_result_texts[4] = text[1].split(':')[1]
+    calendar_result_texts[3] = text[2].split(':')[1]
+    calendar_result_texts[2] = text[3].split(':')[1]
+    calendar_result_texts[1] = text[4].split(':')[1]
+    calendar_result_texts[0] = text[5].split(':')[1]
     threading.Thread(target=save_properties).start()
 
 
