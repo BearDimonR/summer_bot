@@ -44,7 +44,7 @@ def launch_server():
     is_alive = True
     schedule_thread = threading.Thread(target=schedule_check, name='schedule_thread', args=(lambda: is_alive,))
     schedule_thread.start()
-    server.logger().setLevel(logging.WARNING)
+    server.logger.setLevel(logging.WARNING)
     server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
 
 
