@@ -74,10 +74,19 @@ def restart_bot(bot, msg):
         save_data(bot)
         make_backup(bot)
         files_chat_id = None
+        delete_all_data()
         restart_bot(bot, msg)
     else:
         raise FileNotFoundError()
 
+
+def delete_all_data():
+    lock_database.acquire()
+    db_cursor.execute("DELETE FROM users")
+    db_cursor.execute("DELETE FROM days")
+    db_cursor.execute("DELETE FROM user_task_connection")
+    db_connection.commit()
+    lock_database.release()
 
 def check_file_properties(bot, msg: telebot.types.Message):
     if msg.content_type != 'document':
