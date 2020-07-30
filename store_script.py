@@ -88,6 +88,7 @@ def delete_all_data():
     db_connection.commit()
     lock_database.release()
 
+
 def check_file_properties(bot, msg: telebot.types.Message):
     if msg.content_type != 'document':
         return False
