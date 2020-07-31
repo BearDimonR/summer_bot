@@ -346,7 +346,7 @@ def hand_over_task(query):
                                            query.message.message_id,
                                            reply_markup=None)
     bot_instance.send_message(chat_id=query.message.chat.id,
-                              text='Відправте повідомлення для оцінки:',
+                              text='Чекаю на твій пруф:',
                               reply_markup=None)
     bot_instance.clear_step_handler_by_chat_id(query.message.chat.id)
     bot_instance.register_next_step_handler(query.message, hand_over_task_save, str(query.data).split(':')[1])
