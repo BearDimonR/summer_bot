@@ -25,8 +25,8 @@ messages_to_delete = []
 
 server = Flask(__name__)
 
-cron = BackgroundScheduler(daemon=True)
-cron.start()
+#cron = BackgroundScheduler(daemon=True)
+#cron.start()
 
 
 @server.route('/' + TOKEN, methods=['POST'])
@@ -42,16 +42,31 @@ def web_hook():
     return "!", 200
 
 
+# @cron.scheduled_job('cron', hour=8, minute=30)
+# def morning_msg():
+#     send_scheduled_msgs(1)
+#
+#
+# @cron.scheduled_job('cron', hour=15)
+# def morning_msg():
+#     send_scheduled_msgs(2)
+#
+#
+# @cron.scheduled_job('cron', hour=21)
+# def morning_msg():
+#     send_scheduled_msgs(3)
+#     add_connections(bot_instance)
+
 
 def launch_server():
     init_files(bot_instance)
     server.logger.setLevel(logging.WARNING)
-    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
     atexit.register(lambda: end_func())
+    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
 
 
 def end_func():
-    cron.shutdown(wait=False)
+ #   cron.shutdown(wait=False)
     save_data(bot_instance)
     make_backup(bot_instance)
 
