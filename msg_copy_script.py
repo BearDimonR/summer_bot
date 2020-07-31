@@ -11,22 +11,23 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
     else:
         chat_ids = []
     if msg.content_type == 'text':
+        text = check_msg_entities(msg.entities, msg.html_text)
         for chat_id in chat_ids:
             bot.send_message(chat_id,
-                             text=msg.html_text,
+                             text=text,
                              parse_mode='html',
                              disable_notification=disable_notification,
                              reply_markup=keyboard
                              )
             sleep(1)
         return bot.send_message(last_id,
-                                text=msg.html_text,
+                                text=text,
                                 parse_mode='html',
                                 disable_notification=disable_notification,
                                 reply_markup=keyboard
                                 )
     else:
-        caption = msg.html_caption
+        caption = check_msg_entities(msg.entities, msg.html_caption)
         if msg.content_type == 'photo':
             size = msg.photo[-1]
             for chat_id in chat_ids:
@@ -198,3 +199,7 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                 sleep(1)
             return bot.forward_message(last_id, msg.chat.id, msg.message_id)
     raise ValueError('Can\'t copy this message')
+
+
+def check_msg_entities(entities, html_text):
+    return html_text

@@ -8,6 +8,7 @@ import sqlite3
 import json
 import io
 import os
+import pytz
 
 files_chat_id = None
 info_message_id = None
@@ -25,6 +26,8 @@ db_connection = sqlite3.connect(":memory:", check_same_thread=False)
 db_cursor = db_connection.cursor()
 lock_database = threading.Lock()
 lock_file_save = threading.Lock()
+
+tz_kiev = pytz.timezone('Europe/Kiev')
 
 data_path = os.path.join(os.path.dirname(__file__), 'bot.properties')
 
@@ -89,7 +92,7 @@ def delete_all_data():
     lock_database.release()
 
 
-def check_file_properties(bot, msg: telebot.types.Message):
+def check_file_properties(bot, msg):
     if msg.content_type != 'document':
         return False
     data = json.loads(get_data(bot, msg))
@@ -183,7 +186,7 @@ def init_files(bot):
 
 def make_backup(bot):
     save_data(bot)
-    bot.send_message(files_chat_id, '.............\nBackUp ' + str(datetime.datetime.now()))
+    bot.send_message(files_chat_id, '.............\nBackUp ' + str(datetime.datetime.now().astimezone(tz_kiev)))
     bot.forward_message(files_chat_id, files_chat_id, user_message.message_id)
     bot.forward_message(files_chat_id, files_chat_id, day_message.message_id)
     bot.forward_message(files_chat_id, files_chat_id, connection_message.message_id)
@@ -261,7 +264,7 @@ def check_connections(bot):
     add = []
     db_cursor.execute("SELECT * FROM users")
     users = db_cursor.fetchall()
-    now = datetime.datetime.now().date()
+    now = datetime.datetime.now().astimezone(tz_kiev).date()
     delta = datetime.timedelta(days=1)
     for user in users:
         chat_id = user[0]
@@ -283,7 +286,7 @@ def check_connections(bot):
 
 
 def add_connections(bot):
-    tomorrow = datetime.datetime.now()
+    tomorrow = datetime.datetime.now().astimezone(tz_kiev)
     tomorrow += datetime.timedelta(days=1)
     tomorrow = str(tomorrow.date())
     day_id = get_day_id(tomorrow)
@@ -324,7 +327,7 @@ def get_data(bot, msg):
     return res
 
 
-def get_day_id(date=datetime.datetime.now().date()):
+def get_day_id(date=datetime.datetime.now().astimezone(tz_kiev).date()):
     lock_database.acquire()
     db_cursor.execute("SELECT id FROM days WHERE date=?", [date])
     res = db_cursor.fetchall()
@@ -334,7 +337,7 @@ def get_day_id(date=datetime.datetime.now().date()):
     return res[0][0]
 
 
-def get_day(date=datetime.datetime.now().date()):
+def get_day(date=datetime.datetime.now().astimezone(tz_kiev).date()):
     lock_database.acquire()
     db_cursor.execute("SELECT date, morning_id, afternoon_id, evening_id, task_id FROM days WHERE date=?", [date])
     res = db_cursor.fetchall()
@@ -563,7 +566,7 @@ def save_task_result(bot, conn_id, mark):
 
 
 def register_user(bot, chat_id):
-    now = datetime.datetime.now().date()
+    now = datetime.datetime.now().astimezone(tz_kiev).date()
     lock_database.acquire()
     db_cursor.execute("INSERT INTO users (chat_id, date) VALUES (?,?)", [chat_id, now])
     db_connection.commit()

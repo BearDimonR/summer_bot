@@ -10,10 +10,14 @@ import threading
 import hashlib
 import regex as re
 import os
+import pytz
 import logging
 from flask import Flask, request
 from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import date as d
+
+tz_kiev = pytz.timezone('Europe/Kiev')
+
 
 TOKEN = '1153271700:AAHiKc2o1vsZ0nKS8BuMoM3WMOoGYplG3zA'
 
@@ -48,8 +52,8 @@ def web_hook():
 
 @server.errorhandler(telebot.apihelper.ApiException)
 def error_handler(error):
-    bot_instance.send_message(get_chat_id(), '#ERROR\n' + str(error))
     sleep(10)
+    bot_instance.send_message(get_chat_id(), '#ERROR\n' + str(error))
 
 
 @cron.scheduled_job('cron', hour=5, minute=30)
@@ -58,14 +62,14 @@ def morning_msg():
 
 
 @cron.scheduled_job('cron', hour=12)
-def morning_msg():
+def afternoon_msg():
     send_scheduled_msgs(2)
 
 
 @cron.scheduled_job('cron', hour=18)
-def morning_msg():
-    send_scheduled_msgs(3)
+def evening_msg():
     add_connections(bot_instance)
+    send_scheduled_msgs(3)
 
 
 def launch_server():
@@ -130,6 +134,7 @@ def send_scheduled_msgs(n):
     ids = get_users_chat_ids()
     if len(ids) == 0:
         return
+    # TODO SEND PROBLEM
     forwarded_msg = bot_instance.forward_message(get_chat_id(), get_chat_id(), day[n])
     copy_message(bot_instance, forwarded_msg, ids)
     bot_instance.delete_message(forwarded_msg.chat.id, forwarded_msg.message_id)
@@ -261,19 +266,19 @@ def calendar_command(msg):
     pattern_msg = bot_instance.forward_message(get_chat_id(), get_chat_id(), get_calendar_pattern_id())
     messages_to_delete.append(pattern_msg)
     threading.Thread(target=delete_all).start()
-    pattern_text = pattern_msg.html_text
+    pattern_text = check_msg_entities(pattern_msg.entities, pattern_msg.html_text)
     results_dict = get_calendar_results()
-    text = str(forwarded_msg.html_text)
+    text = check_msg_entities(forwarded_msg.entities, forwarded_msg.html_text)
     pattern = ''
     for date_res in dates_res:
-        pattern += str(pattern_text) \
+        pattern += pattern_text \
             .replace('[date]', date_res[0]) \
             .replace('[result]', str(results_dict[date_res[1]]))
     text = text.replace('[pattern]', pattern)
     bot_instance.send_message(msg.chat.id, text, parse_mode='html', reply_markup=telebot.types.InlineKeyboardMarkup()
-                              .row(telebot.types.InlineKeyboardButton('Close',
+                              .row(telebot.types.InlineKeyboardButton('Закрити',
                                                                       callback_data='close select date'),
-                                   telebot.types.InlineKeyboardButton('Select date',
+                                   telebot.types.InlineKeyboardButton('Виберіть дату',
                                                                       callback_data='calendar select date')))
 
 
@@ -296,27 +301,27 @@ def calendar_select_date(query):
     else:
         bot_instance.edit_message_reply_markup(query.message.chat.id, query.message.message_id,
                                                reply_markup=telebot.types.InlineKeyboardMarkup()
-                                               .row(telebot.types.InlineKeyboardButton('Close',
+                                               .row(telebot.types.InlineKeyboardButton('Закрити',
                                                                                        callback_data='close select date'),
-                                                    telebot.types.InlineKeyboardButton('Select date',
+                                                    telebot.types.InlineKeyboardButton('Виберіть дату',
                                                                                        callback_data='calendar select date')))
         calendar_day_info(query.message.chat.id, str(query.data).split(':')[1])
 
 
-def calendar_day_info(chat_id, date=str(datetime.datetime.now().date())):
+def calendar_day_info(chat_id, date=str(datetime.datetime.now().astimezone(tz_kiev).date())):
     day = get_day(date)
     if len(day) == 1 or day[4] is None:
-        bot_instance.send_message(chat_id, 'No task found!')
+        bot_instance.send_message(chat_id, 'Сьогодні завдань немає!')
     else:
         keyboard = telebot.types.InlineKeyboardMarkup() \
-            .row(telebot.types.InlineKeyboardButton('Hand over task',
+            .row(telebot.types.InlineKeyboardButton('Здати завдання',
                                                     callback_data='hand over task:'
                                                                   + date))
         connection = get_user_task_conn(chat_id, date)
         if connection is not None and connection[4] is not None:
             if connection[3] is not None and connection[3] == 4:
                 keyboard = None
-            bot_instance.send_message(chat_id, 'Day ' + date + ':')
+            bot_instance.send_message(chat_id, 'День ' + date + ':')
             send_copy(chat_id, get_chat_id(), day[4], keyboard=keyboard)
             bot_instance.send_message(chat_id, 'Ваше завдання:')
             bot_instance.forward_message(chat_id, get_chat_id(), connection[4])
@@ -335,13 +340,13 @@ def hand_over_task(query):
     if connection is None or connection[3] == 4 or connection[3] == 5:
         bot_instance.edit_message_reply_markup(query.message.chat.id, query.message.message_id, reply_markup=None)
 
-        bot_instance.answer_callback_query(query.id, text="This task is completed!", show_alert=True)
+        bot_instance.answer_callback_query(query.id, text="Завдання не можна відправити!")
         return
     bot_instance.edit_message_reply_markup(query.message.chat.id,
                                            query.message.message_id,
                                            reply_markup=None)
     bot_instance.send_message(chat_id=query.message.chat.id,
-                              text='Send new message for grading:',
+                              text='Відправте повідомлення для оцінки:',
                               reply_markup=None)
     bot_instance.clear_step_handler_by_chat_id(query.message.chat.id)
     bot_instance.register_next_step_handler(query.message, hand_over_task_save, str(query.data).split(':')[1])
@@ -683,7 +688,7 @@ def check_save(query):
     conn_id = spl[2]
     mark = int(spl[1])
     # TODO check this
-    if mark == 4 and d.fromisoformat(date) < datetime.datetime.now().date():
+    if mark == 4 and d.fromisoformat(date) < datetime.datetime.now().astimezone(tz_kiev).date():
         mark = 5
     save_task_result(bot_instance, conn_id, mark)
     bot_instance.answer_callback_query(query.id, text="Успішно")
