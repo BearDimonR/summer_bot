@@ -27,16 +27,10 @@ server = Flask(__name__)
 
 cron = BackgroundScheduler(daemon=True)
 
-splitter = lambda lst, sz: [lst[i:i + sz] for i in range(0, len(lst), sz)]
-
 
 @server.route('/' + TOKEN, methods=['POST'])
 def get_message():
-    updates_list = splitter([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))], 30)
-    for updates in updates_list:
-        bot_instance.process_new_updates(updates)
-        sleep(1)
-
+    bot_instance.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
     return "!", 200
 
 
