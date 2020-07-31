@@ -41,12 +41,6 @@ def web_hook():
     return "!", 200
 
 
-@server.errorhandler(telebot.apihelper.ApiException)
-def error_handler(error):
-    bot_instance.send_message(get_chat_id(), '#ERROR\n' + str(error))
-    sleep(10)
-
-
 @cron.scheduled_job('cron', hour=8, minute=30)
 def morning_msg():
     send_scheduled_msgs(1)
