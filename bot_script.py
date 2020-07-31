@@ -12,7 +12,6 @@ import regex as re
 import os
 import logging
 from flask import Flask, request
-from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import date as d
 
 TOKEN = '1153271700:AAHiKc2o1vsZ0nKS8BuMoM3WMOoGYplG3zA'
