@@ -4,7 +4,6 @@ from calendar_script import *
 from msg_copy_script import *
 
 import schedule
-import atexit
 import telebot
 import threading
 import hashlib
@@ -60,7 +59,7 @@ def web_hook():
 def launch_server():
     init_files(bot_instance)
     server.logger.setLevel(logging.WARNING)
-    atexit.register(lambda: end_func())
+   # atexit.register(lambda: end_func())
     server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
 
 
