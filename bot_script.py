@@ -233,7 +233,7 @@ def restart_with_property(msg):
 
 def check_admin_pass(msg):
     if hashlib.md5(msg.text.encode('utf8')).hexdigest() == admin_password:
-        add_admin(msg.chat.id)
+        add_admin(bot_instance, msg.chat.id)
         show_admin_panel(msg.chat.id)
     else:
         bot_instance.send_message(chat_id=msg.chat.id, text='Wrong password.')
@@ -615,7 +615,7 @@ def edit_calendar_result_save(msg):
             r'\[not graded:[\S\s]+\]\n'
             r'\[not send:[\S\s]+\]', str(msg.text)):
         forwarded_msg = bot_instance.forward_message(get_chat_id(), msg.chat.id, msg.message_id)
-        save_calendar_result(forwarded_msg)
+        save_calendar_result(bot_instance, forwarded_msg)
         messages_to_delete.append(forwarded_msg)
         delete = threading.Thread(target=delete_all)
         delete.start()
@@ -731,5 +731,5 @@ def back_tasks(query):
 
 
 if __name__ == '__main__':
-    # launch()
-    launch_server()
+     launch()
+    #launch_server()
