@@ -72,6 +72,8 @@ def restart_bot(bot, msg):
         # properties save
         save_properties()
         # bot was started
+        with open(data_path) as json_file:
+            bot.send_document(files_chat_id, data=json_file)
         started = True
     elif is_active():
         save_data(bot)
