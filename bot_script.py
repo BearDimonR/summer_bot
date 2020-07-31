@@ -73,8 +73,6 @@ def launch_server():
     server.logger.setLevel(logging.WARNING)
     cron.start()
     atexit.register(lambda: end_func())
-    bot_instance.remove_webhook()
-    bot_instance.set_webhook(url='https://agile-headland-39464.herokuapp.com/' + TOKEN)
     server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
 
 
@@ -167,6 +165,7 @@ def check_auth(msg):
 def start_command(msg):
     if str(msg.text) == '/start admin':
         password_msg = bot_instance.send_message(chat_id=msg.chat.id, text='Password:')
+        bot_instance.clear_step_handler_by_chat_id(msg.chat.id)
         bot_instance.register_next_step_handler(password_msg, check_restart_pass)
     elif not check_active(msg):
         pass
@@ -175,6 +174,7 @@ def start_command(msg):
             show_admin_panel(msg.chat.id)
         else:
             password_msg = bot_instance.send_message(chat_id=msg.chat.id, text='Password:')
+            bot_instance.clear_step_handler_by_chat_id(msg.chat.id)
             bot_instance.register_next_step_handler(password_msg, check_admin_pass)
     else:
         send_copy(msg.chat.id, get_chat_id(), get_start_msg_id(),
@@ -216,6 +216,7 @@ def show_admin_panel(chat_id):
 def check_restart_pass(msg):
     if hashlib.md5(msg.text.encode('utf8')).hexdigest() == restart_password:
         bot_instance.send_message(chat_id=msg.chat.id, text='File:')
+        bot_instance.clear_step_handler_by_chat_id(msg.chat.id)
         bot_instance.register_next_step_handler(msg, restart_with_property)
     else:
         bot_instance.send_message(chat_id=msg.chat.id, text='Wrong password.')
@@ -247,9 +248,10 @@ def accept_handler(callback_query):
                                   text='Команди розблоковані!',
                                   reply_markup=keyboard)
         threading.Thread(target=register_user, args=(bot_instance, callback_query.message.chat.id,)).start()
-    bot_instance.send_message(chat_id=callback_query.message.chat.id,
-                              text='Вітаю з поверненням!',
-                              reply_markup=keyboard)
+    else:
+        bot_instance.send_message(chat_id=callback_query.message.chat.id,
+                                  text='Вітаю з поверненням!',
+                                  reply_markup=keyboard)
 
 
 def calendar_command(msg):
@@ -259,16 +261,16 @@ def calendar_command(msg):
     pattern_msg = bot_instance.forward_message(get_chat_id(), get_chat_id(), get_calendar_pattern_id())
     messages_to_delete.append(pattern_msg)
     threading.Thread(target=delete_all).start()
-    pattern_text = pattern_msg.text
+    pattern_text = pattern_msg.html_text
     results_dict = get_calendar_results()
-    text = str(forwarded_msg.text)
+    text = str(forwarded_msg.html_text)
     pattern = ''
     for date_res in dates_res:
         pattern += str(pattern_text) \
             .replace('[date]', date_res[0]) \
             .replace('[result]', str(results_dict[date_res[1]]))
     text = text.replace('[pattern]', pattern)
-    bot_instance.send_message(msg.chat.id, text, reply_markup=telebot.types.InlineKeyboardMarkup()
+    bot_instance.send_message(msg.chat.id, text, parse_mode='html', reply_markup=telebot.types.InlineKeyboardMarkup()
                               .row(telebot.types.InlineKeyboardButton('Close',
                                                                       callback_data='close select date'),
                                    telebot.types.InlineKeyboardButton('Select date',
@@ -341,6 +343,7 @@ def hand_over_task(query):
     bot_instance.send_message(chat_id=query.message.chat.id,
                               text='Send new message for grading:',
                               reply_markup=None)
+    bot_instance.clear_step_handler_by_chat_id(query.message.chat.id)
     bot_instance.register_next_step_handler(query.message, hand_over_task_save, str(query.data).split(':')[1])
     bot_instance.answer_callback_query(query.id)
 
@@ -363,6 +366,7 @@ def edit_days(query):
     data = str(query.data).split(':')
     messages_to_delete.append(bot_instance.send_message(query.message.chat.id,
                                                         'Send new ' + data[1] + ':'))
+    bot_instance.clear_step_handler_by_chat_id(query.message.chat.id)
     bot_instance.register_next_step_handler(query.message, edit_day, str(query.data).split(':')[1], json.loads(data[2]))
     bot_instance.answer_callback_query(query.id)
 
@@ -474,6 +478,7 @@ def edit_info(query):
         bot_instance.answer_callback_query(query.id)
     elif query.data == 'edit info:message':
         messages_to_delete.append(bot_instance.send_message(chat_id=query.message.chat.id, text='Send new:'))
+        bot_instance.clear_step_handler_by_chat_id(query.message.chat.id)
         bot_instance.register_next_step_handler(query.message, edit_info_save)
         bot_instance.answer_callback_query(query.id)
 
@@ -501,6 +506,7 @@ def edit_start(query):
         bot_instance.answer_callback_query(query.id)
     elif query.data == 'edit start:message':
         messages_to_delete.append(bot_instance.send_message(chat_id=query.message.chat.id, text='Send new:'))
+        bot_instance.clear_step_handler_by_chat_id(query.message.chat.id)
         bot_instance.register_next_step_handler(query.message, edit_start_save)
         bot_instance.answer_callback_query(query.id)
 
@@ -540,12 +546,14 @@ def edit_calendar(query, chat_id=None):
     elif query.data == 'edit calendar:message':
         messages_to_delete.append(bot_instance.send_message(chat_id=query.message.chat.id,
                                                             text='Send new message in form:\nText\n[pattern]\nText\n'))
+        bot_instance.clear_step_handler_by_chat_id(query.message.chat.id)
         bot_instance.register_next_step_handler(query.message, edit_calendar_message_save)
         bot_instance.answer_callback_query(query.id)
     elif query.data == 'edit calendar:pattern':
         messages_to_delete.append(bot_instance.send_message(chat_id=query.message.chat.id,
                                                             text='Send new message in form:\n\nFor example:'
                                                                  '\n****\n[date] : [result]\n****\n'))
+        bot_instance.clear_step_handler_by_chat_id(query.message.chat.id)
         bot_instance.register_next_step_handler(query.message, edit_calendar_pattern_save)
         bot_instance.answer_callback_query(query.id)
     elif query.data == 'edit calendar:result':
@@ -557,6 +565,7 @@ def edit_calendar(query, chat_id=None):
                                                                  '[failed:message]\n'
                                                                  '[not graded:message]\n'
                                                                  '[not send:message]\n'))
+        bot_instance.clear_step_handler_by_chat_id(query.message.chat.id)
         bot_instance.register_next_step_handler(query.message, edit_calendar_result_save)
         bot_instance.answer_callback_query(query.id)
 
@@ -576,8 +585,7 @@ def edit_calendar_message_save(msg):
         edit_calendar(None, msg.chat.id)
     else:
         messages_to_delete.append(bot_instance.send_message(msg.chat.id,
-                                                            'Wrong format (must consist [pattern]:'))
-        bot_instance.register_next_step_handler(msg, edit_calendar_message_save)
+                                                            'Wrong format (must consist [pattern]'))
 
 
 def edit_calendar_pattern_save(msg):
@@ -590,8 +598,7 @@ def edit_calendar_pattern_save(msg):
         edit_calendar(None, msg.chat.id)
     else:
         messages_to_delete.append(bot_instance.send_message(msg.chat.id,
-                                                            'Wrong format (must consist [date] and [result]):'))
-        bot_instance.register_next_step_handler(msg, edit_calendar_pattern_save)
+                                                            'Wrong format (must consist [date] and [result])'))
 
 
 def edit_calendar_result_save(msg):
@@ -617,8 +624,7 @@ def edit_calendar_result_save(msg):
                                                             '[almost done:message]\n'
                                                             '[failed:message]\n'
                                                             '[not graded:message]\n'
-                                                            '[not send:message]\n\nTry again:'))
-        bot_instance.register_next_step_handler(msg, edit_calendar_pattern_save)
+                                                            '[not send:message]\n\n'))
 
 
 @bot_instance.callback_query_handler(lambda query: 'close' == query.data)
@@ -629,6 +635,7 @@ def close_admin_panel(query):
 @bot_instance.callback_query_handler(lambda query: 'send message' == query.data)
 def send_message_command(query):
     messages_to_delete.append(bot_instance.send_message(chat_id=query.message.chat.id, text='Message:'))
+    bot_instance.clear_step_handler_by_chat_id(query.message.chat.id)
     bot_instance.register_next_step_handler(query.message, send_message_thread, query)
     bot_instance.answer_callback_query(query.id)
 
