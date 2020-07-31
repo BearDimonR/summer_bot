@@ -26,6 +26,7 @@ messages_to_delete = []
 server = Flask(__name__)
 
 cron = BackgroundScheduler(daemon=True)
+cron.start()
 
 
 @server.route('/' + TOKEN, methods=['POST'])
@@ -61,7 +62,6 @@ def launch_server():
     init_files(bot_instance)
     server.logger.setLevel(logging.WARNING)
     server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
-    cron.start()
     atexit.register(lambda: end_func())
 
 
