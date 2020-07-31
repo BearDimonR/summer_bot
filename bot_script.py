@@ -734,5 +734,5 @@ def back_tasks(query):
 
 
 if __name__ == '__main__':
-     launch()
-    #launch_server()
+     #launch()
+    launch_server()
