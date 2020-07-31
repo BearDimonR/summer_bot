@@ -269,11 +269,11 @@ def calendar_command(msg):
     pattern_text = check_msg_entities(pattern_msg.entities, pattern_msg.html_text)
     results_dict = get_calendar_results()
     text = check_msg_entities(forwarded_msg.entities, forwarded_msg.html_text)
-    pattern = ''
+    pattern = '\n\n'
     for date_res in dates_res:
         pattern += pattern_text \
             .replace('[date]', date_res[0]) \
-            .replace('[result]', str(results_dict[date_res[1]]))
+            .replace('[result]', str(results_dict[date_res[1]])) + '\n\n'
     text = text.replace('[pattern]', pattern)
     bot_instance.send_message(msg.chat.id, text, parse_mode='html', reply_markup=telebot.types.InlineKeyboardMarkup()
                               .row(telebot.types.InlineKeyboardButton('Закрити',
