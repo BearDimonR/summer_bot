@@ -283,10 +283,12 @@ def check_connections(bot):
 
 
 def add_connections(bot):
-    now = str(datetime.datetime.now().date())
-    day_id = get_day_id(now)
+    tomorrow = datetime.datetime.now()
+    tomorrow += datetime.timedelta(days=1)
+    tomorrow = str(tomorrow.date())
+    day_id = get_day_id(tomorrow)
     if day_id is None:
-        day_id = change_day(bot, [now])
+        day_id = change_day(bot, [tomorrow])
     chat_ids = get_users_chat_ids()
     lock_database.acquire()
     db_cursor.executemany("INSERT INTO user_task_connection (chat_id, day_id) VALUES (?,?)",
@@ -570,12 +572,13 @@ def register_user(bot, chat_id):
     if day_id is None:
         change_day(bot, [now])
         day_id = get_day_id(now)
-    lock_database.acquire()
-    db_cursor.execute("INSERT INTO user_task_connection (chat_id, day_id) VALUES (?,?)", [chat_id, day_id])
-    db_connection.commit()
-    lock_database.release()
+    if get_user_task_conn(chat_id, str(now)) is None:
+        lock_database.acquire()
+        db_cursor.execute("INSERT INTO user_task_connection (chat_id, day_id) VALUES (?,?)", [chat_id, day_id])
+        db_connection.commit()
+        lock_database.release()
+        threading.Thread(target=save_connection, args=(bot,)).start()
     threading.Thread(target=save_users, args=(bot,)).start()
-    threading.Thread(target=save_connection, args=(bot,)).start()
 
 
 def change_day(bot, day_to_change):

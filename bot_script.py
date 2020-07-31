@@ -1,10 +1,10 @@
 import sys
-from time import sleep
 from store_script import *
 from calendar_script import *
 from msg_copy_script import *
 
 import schedule
+import atexit
 import telebot
 import threading
 import hashlib
@@ -12,6 +12,7 @@ import regex as re
 import os
 import logging
 from flask import Flask, request
+from apscheduler.schedulers.background import BackgroundScheduler
 from datetime import date as d
 
 TOKEN = '1153271700:AAHiKc2o1vsZ0nKS8BuMoM3WMOoGYplG3zA'
@@ -24,10 +25,18 @@ messages_to_delete = []
 
 server = Flask(__name__)
 
+cron = BackgroundScheduler(daemon=True)
+
+splitter = lambda lst, sz: [lst[i:i + sz] for i in range(0, len(lst), sz)]
+
 
 @server.route('/' + TOKEN, methods=['POST'])
 def get_message():
-    bot_instance.process_new_updates([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))])
+    updates_list = splitter([telebot.types.Update.de_json(request.stream.read().decode("utf-8"))], 30)
+    for updates in updates_list:
+        bot_instance.process_new_updates(updates)
+        sleep(1)
+
     return "!", 200
 
 
@@ -38,18 +47,45 @@ def web_hook():
     return "!", 200
 
 
+@server.errorhandler(telebot.apihelper.ApiException)
+def error_handler(error):
+    bot_instance.send_message(get_chat_id(), '#ERROR\n' + str(error))
+    sleep(10)
+
+
+@cron.scheduled_job('cron', hour=8, minute=30)
+def morning_msg():
+    send_scheduled_msgs(1)
+
+
+@cron.scheduled_job('cron', hour=15)
+def morning_msg():
+    send_scheduled_msgs(2)
+
+
+@cron.scheduled_job('cron', hour=21)
+def morning_msg():
+    send_scheduled_msgs(3)
+    add_connections(bot_instance)
+
+
 def launch_server():
     init_files(bot_instance)
-    schedule_start()
-    is_alive = True
-    schedule_thread = threading.Thread(target=schedule_check, name='schedule_thread', args=(lambda: is_alive,))
-    schedule_thread.start()
     server.logger.setLevel(logging.WARNING)
     server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
+    cron.start()
+    atexit.register(lambda: end_func())
+
+
+def end_func():
+    cron.shutdown(wait=False)
+    save_data(bot_instance)
+    make_backup(bot_instance)
 
 
 def launch():
     global bot_instance
+    bot_instance.remove_webhook()
     schedule_start()
     init_files(bot_instance)
     while True:
@@ -68,7 +104,6 @@ def launch():
             bot_instance.send_message(get_chat_id(), '#ERROR\n\n' + str(e))
             make_backup(bot_instance)
             save_data(bot_instance)
-            continue
 
 
 def schedule_check(is_alive):
@@ -202,10 +237,11 @@ def accept_handler(callback_query):
     bot_instance.edit_message_reply_markup(chat_id=callback_query.message.chat.id,
                                            message_id=callback_query.message.message_id,
                                            reply_markup=None)
-    keyboard = telebot.types.ReplyKeyboardMarkup(selective=True) \
+    keyboard = telebot.types.ReplyKeyboardMarkup(resize_keyboard=True, selective=True) \
         .row(telebot.types.KeyboardButton(text='/info'),
              telebot.types.KeyboardButton(text='/today'),
              telebot.types.KeyboardButton(text='/calendar'))
+    keyboard
     if not is_authorized(callback_query.message.chat.id):
         bot_instance.send_message(chat_id=callback_query.message.chat.id,
                                   text='Команди розблоковані!',
@@ -683,5 +719,5 @@ def back_tasks(query):
 
 
 if __name__ == '__main__':
-    # launch()
+    #launch()
     launch_server()
