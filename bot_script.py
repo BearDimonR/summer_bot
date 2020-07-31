@@ -52,17 +52,17 @@ def error_handler(error):
     sleep(10)
 
 
-@cron.scheduled_job('cron', hour=8, minute=30)
+@cron.scheduled_job('cron', hour=5, minute=30)
 def morning_msg():
     send_scheduled_msgs(1)
 
 
-@cron.scheduled_job('cron', hour=15)
+@cron.scheduled_job('cron', hour=12)
 def morning_msg():
     send_scheduled_msgs(2)
 
 
-@cron.scheduled_job('cron', hour=21)
+@cron.scheduled_job('cron', hour=18)
 def morning_msg():
     send_scheduled_msgs(3)
     add_connections(bot_instance)
