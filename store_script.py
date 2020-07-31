@@ -10,8 +10,6 @@ import io
 import os
 import pytz
 
-property_message = None
-
 files_chat_id = None
 info_message_id = None
 admin_chat_ids = None
@@ -49,13 +47,8 @@ def restart_bot(bot, msg):
         global started
         if check_file_properties(bot, msg):
             started = True
-            save_properties(bot)
+            save_properties()
             return
-        # bot prop
-        global property_message
-        property_message = bot.send_document(msg.chat.id, io.StringIO('{}'))
-        with open(data_path, 'w') as bot_file:
-            json.dump({'property_message': property_message.json}, bot_file)
         # set chat_id
         files_chat_id = msg.chat.id
         # send empty info
@@ -77,7 +70,7 @@ def restart_bot(bot, msg):
         # save files
         save_data(bot)
         # properties save
-        save_properties(bot)
+        save_properties()
         # bot was started
         started = True
     elif is_active():
@@ -102,10 +95,6 @@ def delete_all_data():
 def check_file_properties(bot, msg):
     if msg.content_type != 'document':
         return False
-    global property_message
-    property_message = msg
-    with open(data_path, 'w') as bot_file:
-        json.dump({'property_message': property_message.json}, bot_file)
     data = json.loads(get_data(bot, msg))
     global files_chat_id
     files_chat_id = data['files_chat_id']
@@ -157,38 +146,35 @@ def init_files(bot):
     db_connection.commit()
     global started
     try:
-        global property_message
         with open(data_path) as json_file:
-            prop = json.load(json_file)
-            property_message = telebot.types.Message.de_json(prop['property_message'])
-        data = json.loads(get_data(bot, property_message))
-        global files_chat_id
-        files_chat_id = data['files_chat_id']
-        global info_message_id
-        info_message_id = data['info_message_id']
-        global admin_chat_ids
-        admin_chat_ids = data['admin_chat_ids']
-        global start_message_id
-        start_message_id = data['start_message_id']
-        global calendar_message_id
-        calendar_message_id = data['calendar_message_id']
-        global calendar_pattern_id
-        calendar_pattern_id = data['calendar_pattern_id']
-        global calendar_result_texts
-        texts = json.loads(data['calendar_result_texts'])
-        calendar_result_texts = dict()
-        calendar_result_texts[5] = texts['5']
-        calendar_result_texts[4] = texts['4']
-        calendar_result_texts[3] = texts['3']
-        calendar_result_texts[2] = texts['2']
-        calendar_result_texts[1] = texts['1']
-        calendar_result_texts[0] = texts['0']
-        global user_message
-        user_message = telebot.types.Message.de_json(data['user_message'])
-        global day_message
-        day_message = telebot.types.Message.de_json(data['day_message'])
-        global connection_message
-        connection_message = telebot.types.Message.de_json(data['connection_message'])
+            data = json.load(json_file)
+            global files_chat_id
+            files_chat_id = data['files_chat_id']
+            global info_message_id
+            info_message_id = data['info_message_id']
+            global admin_chat_ids
+            admin_chat_ids = data['admin_chat_ids']
+            global start_message_id
+            start_message_id = data['start_message_id']
+            global calendar_message_id
+            calendar_message_id = data['calendar_message_id']
+            global calendar_pattern_id
+            calendar_pattern_id = data['calendar_pattern_id']
+            global calendar_result_texts
+            texts = json.loads(data['calendar_result_texts'])
+            calendar_result_texts = dict()
+            calendar_result_texts[5] = texts['5']
+            calendar_result_texts[4] = texts['4']
+            calendar_result_texts[3] = texts['3']
+            calendar_result_texts[2] = texts['2']
+            calendar_result_texts[1] = texts['1']
+            calendar_result_texts[0] = texts['0']
+            global user_message
+            user_message = telebot.types.Message.de_json(data['user_message'])
+            global day_message
+            day_message = telebot.types.Message.de_json(data['day_message'])
+            global connection_message
+            connection_message = telebot.types.Message.de_json(data['connection_message'])
         load_data(bot)
         started = True
         check_connections(bot)
@@ -221,26 +207,20 @@ def load_data(bot):
     db_connection.commit()
 
 
-def save_properties(bot):
-    global property_message
+def save_properties():
     lock_file_save.acquire()
-    res = json.dumps({'files_chat_id': files_chat_id,
-                      'info_message_id': info_message_id,
-                      'admin_chat_ids': admin_chat_ids,
-                      'start_message_id': start_message_id,
-                      'calendar_message_id': calendar_message_id,
-                      'calendar_pattern_id': calendar_pattern_id,
-                      'calendar_result_texts': json.dumps(calendar_result_texts),
-                      'user_message': user_message.json,
-                      'day_message': day_message.json,
-                      'connection_message': connection_message.json
-                      })
-    property_message = bot.edit_message_media(
-        InputMediaDocument(io.StringIO(res)),
-        files_chat_id,
-        property_message.message_id)
     with open(data_path, 'w') as bot_file:
-        json.dump({'property_message': property_message.json}, bot_file)
+        json.dump({'files_chat_id': files_chat_id,
+                   'info_message_id': info_message_id,
+                   'admin_chat_ids': admin_chat_ids,
+                   'start_message_id': start_message_id,
+                   'calendar_message_id': calendar_message_id,
+                   'calendar_pattern_id': calendar_pattern_id,
+                   'calendar_result_texts': json.dumps(calendar_result_texts),
+                   'user_message': user_message.json,
+                   'day_message': day_message.json,
+                   'connection_message': connection_message.json
+                   }, bot_file)
     lock_file_save.release()
 
 
@@ -248,9 +228,9 @@ def has_admin_perm(chat_id):
     return chat_id in admin_chat_ids
 
 
-def add_admin(bot, chat_id):
+def add_admin(chat_id):
     admin_chat_ids.append(chat_id)
-    threading.Thread(target=save_properties, args=(bot,)).start()
+    threading.Thread(target=save_properties).start()
 
 
 def is_active():
@@ -464,7 +444,7 @@ def save_users(bot):
             files_chat_id,
             user_message.message_id)
         lock_file_save.release()
-        save_properties(bot)
+        save_properties()
     except Exception as ex:
         print(ex)
         raise ex
@@ -485,7 +465,7 @@ def save_days(bot):
             files_chat_id,
             day_message.message_id)
         lock_file_save.release()
-        save_properties(bot)
+        save_properties()
     except Exception as ex:
         print(ex)
         raise ex
@@ -506,7 +486,7 @@ def save_connection(bot):
             files_chat_id,
             connection_message.message_id)
         lock_file_save.release()
-        save_properties(bot)
+        save_properties()
     except Exception as ex:
         print(ex)
         raise ex
@@ -516,31 +496,31 @@ def save_information(bot, msg_id):
     global info_message_id
     bot.delete_message(files_chat_id, info_message_id)
     info_message_id = msg_id
-    threading.Thread(target=save_properties, args=(bot,)).start()
+    threading.Thread(target=save_properties).start()
 
 
 def save_start(bot, msg_id):
     global start_message_id
     bot.delete_message(files_chat_id, start_message_id)
     start_message_id = msg_id
-    threading.Thread(target=save_properties, args=(bot,)).start()
+    threading.Thread(target=save_properties).start()
 
 
 def save_calendar_message(bot, msg_id):
     global calendar_message_id
     bot.delete_message(files_chat_id, calendar_message_id)
     calendar_message_id = msg_id
-    threading.Thread(target=save_properties, args=(bot,)).start()
+    threading.Thread(target=save_properties).start()
 
 
 def save_calendar_pattern(bot, msg_id):
     global calendar_pattern_id
     bot.delete_message(files_chat_id, calendar_pattern_id)
     calendar_pattern_id = msg_id
-    threading.Thread(target=save_properties, args=(bot,)).start()
+    threading.Thread(target=save_properties).start()
 
 
-def save_calendar_result(bot, msg):
+def save_calendar_result(msg):
     global calendar_result_texts
     text = str(msg.text).replace('\n', '').replace(']', '').split('[')
     text.remove('')
@@ -550,7 +530,7 @@ def save_calendar_result(bot, msg):
     calendar_result_texts[2] = text[3].split(':')[1]
     calendar_result_texts[1] = text[4].split(':')[1]
     calendar_result_texts[0] = text[5].split(':')[1]
-    threading.Thread(target=save_properties, args=(bot,)).start()
+    threading.Thread(target=save_properties).start()
 
 
 def save_task_hand_over(bot, chat_id, date, msg_id):
