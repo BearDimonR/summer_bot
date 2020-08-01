@@ -66,18 +66,18 @@ def afternoon_msg():
     send_scheduled_msgs(2)
 
 
-@cron.scheduled_job('cron', hour=18)
+@cron.scheduled_job('cron', hour=18, minute=30)
 def evening_msg():
     send_scheduled_msgs(3)
 
 
 @cron.scheduled_job('cron', hour=21)
-def evening_msg():
+def connection_check():
     check_connections(bot_instance)
 
 
 @cron.scheduled_job('cron', hour=21, minute=30)
-def evening_msg():
+def connection_check():
     check_connections(bot_instance)
 
 
