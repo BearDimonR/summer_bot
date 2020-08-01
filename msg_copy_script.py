@@ -7,7 +7,7 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                  keyboard=None):
     last_id = chat_ids[-1]
     if len(chat_ids) > 1:
-        chat_ids = chat_ids[:1]
+        chat_ids = chat_ids[:-1]
     else:
         chat_ids = []
     if msg.content_type == 'text':

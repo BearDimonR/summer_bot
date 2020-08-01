@@ -68,8 +68,22 @@ def afternoon_msg():
 
 @cron.scheduled_job('cron', hour=18)
 def evening_msg():
-    add_connections(bot_instance)
     send_scheduled_msgs(3)
+
+
+@cron.scheduled_job('cron', hour=21)
+def evening_msg():
+    check_connections(bot_instance)
+
+
+@cron.scheduled_job('cron', hour=21, minute=30)
+def evening_msg():
+    check_connections(bot_instance)
+
+
+@cron.scheduled_job('cron', hour=22)
+def connection_check():
+    check_connections(bot_instance)
 
 
 def launch_server():
@@ -134,7 +148,6 @@ def send_scheduled_msgs(n):
     ids = get_users_chat_ids()
     if len(ids) == 0:
         return
-    # TODO SEND PROBLEM
     forwarded_msg = bot_instance.forward_message(get_chat_id(), get_chat_id(), day[n])
     copy_message(bot_instance, forwarded_msg, ids)
     bot_instance.delete_message(forwarded_msg.chat.id, forwarded_msg.message_id)
@@ -359,7 +372,7 @@ def hand_over_task_save(msg, date):
     bot_instance.send_message(chat_id=msg.chat.id,
                               text='Єєє🔥\nЗавдання відправлено і знаходиться на перевірці!\n'
                                    'Ти прийняв цей виклик і зробив крок до трішечки оновленої версії себе😎\n\n'
-                                   'Сподіваємося, було цікаво та , а при виконанні ніхто не постраждав. '
+                                   'Сподіваємося, було цікаво та корисно, а при виконанні ніхто не постраждав. '
                                    '\n\nЧарівного настрою⚡️')
 
 
