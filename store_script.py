@@ -1,5 +1,9 @@
+import base64
 import datetime
 
+import requests
+from github import Github
+from github import InputGitTreeElement
 import telebot
 from telebot.types import InputMediaDocument
 from datetime import date as d
@@ -30,6 +34,11 @@ lock_file_save = threading.Lock()
 tz_kiev = pytz.timezone('Europe/Kiev')
 
 data_path = os.path.join(os.path.dirname(__file__), 'bot.properties')
+
+g = Github('BearDimonR', 'dimon2001_bot_SB_temp')
+repo = g.get_user().get_repo('files')
+commit_message = 'update bot.properties'
+commit_lock = threading.Lock()
 
 
 def restart_bot(bot, msg):
@@ -148,42 +157,62 @@ def init_files(bot):
     db_connection.commit()
     global started
     try:
-        with open(data_path) as json_file:
-            data = json.load(json_file)
-            global files_chat_id
-            files_chat_id = data['files_chat_id']
-            global info_message_id
-            info_message_id = data['info_message_id']
-            global admin_chat_ids
-            admin_chat_ids = data['admin_chat_ids']
-            global start_message_id
-            start_message_id = data['start_message_id']
-            global calendar_message_id
-            calendar_message_id = data['calendar_message_id']
-            global calendar_pattern_id
-            calendar_pattern_id = data['calendar_pattern_id']
-            global calendar_result_texts
-            texts = json.loads(data['calendar_result_texts'])
-            calendar_result_texts = dict()
-            calendar_result_texts[5] = texts['5']
-            calendar_result_texts[4] = texts['4']
-            calendar_result_texts[3] = texts['3']
-            calendar_result_texts[2] = texts['2']
-            calendar_result_texts[1] = texts['1']
-            calendar_result_texts[0] = texts['0']
-            global user_message
-            user_message = telebot.types.Message.de_json(data['user_message'])
-            global day_message
-            day_message = telebot.types.Message.de_json(data['day_message'])
-            global connection_message
-            connection_message = telebot.types.Message.de_json(data['connection_message'])
+        master_ref = repo.get_git_ref('heads/master')
+        master_sha = master_ref.object.sha
+        parent = repo.get_git_commit(master_sha)
+        file_link = 'https://raw.githubusercontent.com/BearDimonR/files/master/bot.properties'.replace('master', parent.raw_data['sha'])
+        properties_resp = requests.get(file_link)
+        data = json.loads(properties_resp.text)
+        global files_chat_id
+        files_chat_id = data['files_chat_id']
+        global info_message_id
+        info_message_id = data['info_message_id']
+        global admin_chat_ids
+        admin_chat_ids = data['admin_chat_ids']
+        global start_message_id
+        start_message_id = data['start_message_id']
+        global calendar_message_id
+        calendar_message_id = data['calendar_message_id']
+        global calendar_pattern_id
+        calendar_pattern_id = data['calendar_pattern_id']
+        global calendar_result_texts
+        texts = json.loads(data['calendar_result_texts'])
+        calendar_result_texts = dict()
+        calendar_result_texts[5] = texts['5']
+        calendar_result_texts[4] = texts['4']
+        calendar_result_texts[3] = texts['3']
+        calendar_result_texts[2] = texts['2']
+        calendar_result_texts[1] = texts['1']
+        calendar_result_texts[0] = texts['0']
+        global user_message
+        user_message = telebot.types.Message.de_json(data['user_message'])
+        global day_message
+        day_message = telebot.types.Message.de_json(data['day_message'])
+        global connection_message
+        connection_message = telebot.types.Message.de_json(data['connection_message'])
         load_data(bot)
         started = True
         check_connections(bot)
-        with open(data_path) as json_file:
-            bot.send_document(files_chat_id, data=json_file)
+        bot.send_message(files_chat_id, 'bot started')
     except KeyError:
         started = False
+
+
+def commit_to_git():
+    commit_lock.acquire()
+    master_ref = repo.get_git_ref('heads/master')
+    master_sha = master_ref.object.sha
+    base_tree = repo.get_git_tree(master_sha)
+    element_list = list()
+    with open(data_path) as input_file:
+        data = input_file.read()
+    element = InputGitTreeElement('bot.properties', '100644', 'blob', data)
+    element_list.append(element)
+    tree = repo.create_git_tree(element_list, base_tree)
+    parent = repo.get_git_commit(master_sha)
+    commit = repo.create_git_commit(commit_message, tree, [parent])
+    master_ref.edit(commit.sha)
+    commit_lock.release()
 
 
 def make_backup(bot):
@@ -223,6 +252,7 @@ def save_properties():
                    'day_message': day_message.json,
                    'connection_message': connection_message.json
                    }, bot_file)
+    commit_to_git()
     lock_file_save.release()
 
 
@@ -496,28 +526,24 @@ def save_connection(bot):
 
 def save_information(bot, msg_id):
     global info_message_id
-    bot.delete_message(files_chat_id, info_message_id)
     info_message_id = msg_id
     threading.Thread(target=save_properties).start()
 
 
 def save_start(bot, msg_id):
     global start_message_id
-    bot.delete_message(files_chat_id, start_message_id)
     start_message_id = msg_id
     threading.Thread(target=save_properties).start()
 
 
 def save_calendar_message(bot, msg_id):
     global calendar_message_id
-    bot.delete_message(files_chat_id, calendar_message_id)
     calendar_message_id = msg_id
     threading.Thread(target=save_properties).start()
 
 
 def save_calendar_pattern(bot, msg_id):
     global calendar_pattern_id
-    bot.delete_message(files_chat_id, calendar_pattern_id)
     calendar_pattern_id = msg_id
     threading.Thread(target=save_properties).start()
 
@@ -547,8 +573,6 @@ def save_task_hand_over(bot, chat_id, date, msg_id):
     conn_id, chat_id, task_id, complete_state, message_id = res
     lock_database.release()
     if complete_state != 4:
-        if message_id is not None:
-            bot.delete_message(files_chat_id, message_id)
         lock_database.acquire()
         db_cursor.execute("UPDATE user_task_connection SET complete_state=?, message_id=? WHERE id=?",
                           [1, msg_id, conn_id])
