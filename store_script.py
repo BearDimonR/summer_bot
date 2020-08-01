@@ -451,7 +451,7 @@ def get_dates_for_check():
                       " WHERE complete_state=1")
     res = db_cursor.fetchall()
     lock_database.release()
-    return [i[0] for i in res]
+    return set(i[0] for i in res)
 
 
 def save_data(bot):
