@@ -50,7 +50,7 @@ def web_hook():
     return "!", 200
 
 
-@server.errorhandler(BaseException)
+@server.errorhandler(Exception)
 def error_handler(error):
     sleep(10)
     bot_instance.send_message(get_chat_id(), '#ERROR\n' + str(error))
