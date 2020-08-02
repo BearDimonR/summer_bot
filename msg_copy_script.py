@@ -2,6 +2,8 @@ from time import sleep
 
 import telebot
 
+from store_script import get_chat_id
+
 
 def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: list, disable_notification=False,
                  keyboard=None):
@@ -20,7 +22,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                  disable_notification=disable_notification,
                                  reply_markup=keyboard
                                  )
-            except telebot.apihelper.ApiException:
+            except telebot.apihelper.ApiException as e:
+                send_error(bot, e)
                 continue
             sleep(0.5)
         return bot.send_message(last_id,
@@ -41,7 +44,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                    parse_mode='html',
                                    disable_notification=disable_notification,
                                    reply_markup=keyboard)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
             return bot.send_photo(last_id,
@@ -59,7 +63,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                    parse_mode='html',
                                    disable_notification=disable_notification,
                                    reply_markup=keyboard)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
             return bot.send_audio(last_id,
@@ -77,15 +82,16 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                       parse_mode='html',
                                       disable_notification=disable_notification,
                                       reply_markup=keyboard)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
                 return bot.send_document(last_id,
-                                     data=msg.document.file_id,
-                                     caption=caption,
-                                     parse_mode='html',
-                                     disable_notification=disable_notification,
-                                     reply_markup=keyboard)
+                                         data=msg.document.file_id,
+                                         caption=caption,
+                                         parse_mode='html',
+                                         disable_notification=disable_notification,
+                                         reply_markup=keyboard)
         elif msg.content_type == 'sticker':
             for chat_id in chat_ids:
                 try:
@@ -93,7 +99,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                      data=msg.sticker.file_id,
                                      disable_notification=disable_notification,
                                      reply_markup=keyboard)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
             sleep(0.5)
             return bot.send_sticker(last_id,
@@ -109,7 +116,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                    parse_mode='html',
                                    disable_notification=disable_notification,
                                    reply_markup=keyboard)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
             return bot.send_video(last_id,
@@ -127,7 +135,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                        parse_mode='html',
                                        disable_notification=disable_notification,
                                        reply_markup=keyboard)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
             return bot.send_animation(last_id,
@@ -145,7 +154,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                    parse_mode='html',
                                    disable_notification=disable_notification,
                                    reply_markup=keyboard)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
             return bot.send_voice(last_id,
@@ -161,7 +171,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                         data=msg.video_note.file_id,
                                         disable_notification=disable_notification,
                                         reply_markup=keyboard)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
             return bot.send_video_note(last_id,
@@ -177,7 +188,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                      last_name=msg.contact.last_name or '',
                                      disable_notification=disable_notification,
                                      reply_markup=keyboard)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
             return bot.send_contact(last_id,
@@ -194,7 +206,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                       longitude=msg.location.longitude,
                                       disable_notification=disable_notification,
                                       reply_markup=keyboard)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
             return bot.send_location(last_id,
@@ -213,7 +226,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
                                    foursquare_id=msg.venue.foursquare_id,
                                    disable_notification=disable_notification,
                                    reply_markup=keyboard)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
             return bot.send_venue(last_id,
@@ -228,7 +242,8 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
             for chat_id in chat_ids:
                 try:
                     bot.forward_message(chat_id, msg.chat.id, msg.message_id)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
             return bot.forward_message(last_id, msg.chat.id, msg.message_id)
@@ -236,11 +251,16 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
             for chat_id in chat_ids:
                 try:
                     bot.forward_message(chat_id, msg.chat.id, msg.message_id)
-                except telebot.apihelper.ApiException:
+                except telebot.apihelper.ApiException as e:
+                    send_error(bot, e)
                     continue
                 sleep(0.5)
             return bot.forward_message(last_id, msg.chat.id, msg.message_id)
     raise ValueError('Can\'t copy this message')
+
+
+def send_error(bot, error):
+    bot.send_message(get_chat_id(), '#ERROR\n' + str(error))
 
 
 def check_msg_entities(entities, html_text):
