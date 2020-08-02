@@ -21,7 +21,7 @@ tz_kiev = pytz.timezone('Europe/Kiev')
 
 TOKEN = '1153271700:AAHiKc2o1vsZ0nKS8BuMoM3WMOoGYplG3zA'
 
-bot_instance = telebot.TeleBot(TOKEN)
+bot_instance = telebot.TeleBot(TOKEN, threaded=False)
 restart_password = '5a82d6497f6e915d57609916f2423e2b'
 admin_password = '9f176ec57c09dcc7e9f082cae646403a'
 
@@ -52,7 +52,7 @@ def web_hook():
 
 @server.errorhandler(Exception)
 def error_handler(error):
-    sleep(10)
+    sleep(2)
     bot_instance.send_message(get_chat_id(), '#ERROR\n' + str(error))
     return "!", 200
 
