@@ -50,7 +50,7 @@ def web_hook():
     return "!", 200
 
 
-@server.errorhandler(telebot.apihelper.ApiException)
+@server.errorhandler()
 def error_handler(error):
     sleep(10)
     bot_instance.send_message(get_chat_id(), '#ERROR\n' + str(error))
@@ -745,5 +745,5 @@ def back_tasks(query):
 
 
 if __name__ == '__main__':
-    #launch()
-    launch_server()
+    launch()
+    #launch_server()
