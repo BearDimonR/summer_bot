@@ -45,7 +45,7 @@ def get_message():
 
 @server.route("/")
 def web_hook():
-    bot_instance.remove_webhook()
+    bot_instance.delete_webhook()
     bot_instance.set_webhook(url='https://agile-headland-39464.herokuapp.com/' + TOKEN)
     return "!", 200
 
