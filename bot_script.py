@@ -134,8 +134,8 @@ def schedule_start():
     schedule.every(6).hours.do(make_backup, bot_instance)
     schedule.every().day.at("08:30").do(send_scheduled_msgs, 1)  # 8:30
     schedule.every().day.at("15:00").do(send_scheduled_msgs, 2)  # 15:00
-    schedule.every().day.at("21:40").do(send_scheduled_msgs, 3)  # 21:30
-    schedule.every().day.at("21:41").do(add_connections, bot_instance)
+    schedule.every().day.at("21:30").do(send_scheduled_msgs, 3)  # 21:30
+    schedule.every().day.at("21:31").do(add_connections, bot_instance)
 
 
 def start_scheduled_thread(n):

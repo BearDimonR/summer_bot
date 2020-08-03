@@ -192,7 +192,7 @@ def init_files(bot):
         load_data(bot)
         started = True
         check_connections(bot)
-        bot.send_message(files_chat_id, 'bot started')
+        bot.send_message(files_chat_id, 'bot started: ' + str(datetime.datetime.now().astimezone(tz_kiev)))
     except KeyError:
         started = False
 
