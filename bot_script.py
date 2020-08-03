@@ -322,7 +322,7 @@ def calendar_select_date(query):
         calendar_day_info(query.message.chat.id, str(query.data).split(':')[1])
 
 
-def calendar_day_info(chat_id, date=str(datetime.datetime.now().astimezone(tz_kiev).date())):
+def calendar_day_info(chat_id, date):
     day = get_day(date)
     if len(day) == 1 or day[4] is None:
         bot_instance.send_message(chat_id, 'Сьогодні завдань немає!')
@@ -345,7 +345,8 @@ def calendar_day_info(chat_id, date=str(datetime.datetime.now().astimezone(tz_ki
 
 
 def today_command(msg):
-    calendar_day_info(msg.chat.id)
+    date = str(datetime.datetime.now().astimezone(tz_kiev).date())
+    calendar_day_info(msg.chat.id, date)
 
 
 @bot_instance.callback_query_handler(lambda query: 'hand over task' in str(query.data))
