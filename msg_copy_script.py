@@ -260,7 +260,7 @@ def copy_message(bot: telebot.TeleBot, msg: telebot.types.Message, chat_ids: lis
 
 
 def send_error(bot, error):
-    bot.send_message(get_chat_id(), '#ERROR\n' + str(error))
+    bot.send_message(get_chat_id(), '#ERROR (sending messages)\n' + str(error))
 
 
 def check_msg_entities(entities, html_text):

@@ -718,7 +718,7 @@ def check_save(query):
 def check_next_tasks(query):
     delete_all()
     date = str(query.data).split(':')[1]
-    day = get_day()
+    day = get_day(date)
     connection = get_user_task_conn_check(date)
     keyboard = telebot.types.InlineKeyboardMarkup()
     if connection is not None:
