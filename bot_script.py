@@ -703,9 +703,6 @@ def check_save(query):
     date = spl[3]
     conn_id = spl[2]
     mark = int(spl[1])
-    # TODO check this
-    if mark == 4 and d.fromisoformat(date) < datetime.datetime.now().astimezone(tz_kiev).date():
-        mark = 5
     save_task_result(bot_instance, conn_id, mark)
     bot_instance.answer_callback_query(query.id, text="Успішно")
     bot_instance.send_message(chat_id,
@@ -723,6 +720,8 @@ def check_next_tasks(query):
     keyboard = telebot.types.InlineKeyboardMarkup()
     if connection is not None:
         keyboard.row(
+            telebot.types.InlineKeyboardButton('Done late', callback_data='check save:5:' + str(
+                connection[0]) + ':' + date + ':' + str(connection[1])),
             telebot.types.InlineKeyboardButton('Done', callback_data='check save:4:' + str(
                 connection[0]) + ':' + date + ':' + str(connection[1])),
             telebot.types.InlineKeyboardButton('Almost',
@@ -747,5 +746,5 @@ def back_tasks(query):
 
 
 if __name__ == '__main__':
-    #launch()
+    # launch()
     launch_server()
