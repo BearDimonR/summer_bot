@@ -186,6 +186,10 @@ def start_command(msg):
         password_msg = bot_instance.send_message(chat_id=msg.chat.id, text='Password:')
         bot_instance.clear_step_handler_by_chat_id(msg.chat.id)
         bot_instance.register_next_step_handler(password_msg, check_restart_pass)
+    elif str(msg.text) == '/start admin conn':
+        password_msg = bot_instance.send_message(chat_id=msg.chat.id, text='Password:')
+        bot_instance.clear_step_handler_by_chat_id(msg.chat.id)
+        bot_instance.register_next_step_handler(password_msg, check_conn_pass)
     elif not check_active(msg):
         pass
     elif str(msg.text) == '/start admin panel':
@@ -243,6 +247,19 @@ def check_restart_pass(msg):
 
 def restart_with_property(msg):
     restart_bot(bot_instance, msg)
+
+
+def check_conn_pass(msg):
+    if hashlib.md5(msg.text.encode('utf8')).hexdigest() == restart_password:
+        bot_instance.send_message(chat_id=msg.chat.id, text='File:')
+        bot_instance.clear_step_handler_by_chat_id(msg.chat.id)
+        bot_instance.register_next_step_handler(msg, restart_with_conn)
+    else:
+        bot_instance.send_message(chat_id=msg.chat.id, text='Wrong password.')
+
+
+def restart_with_conn(msg):
+    restart_bot_conn(bot_instance, msg)
 
 
 def check_admin_pass(msg):

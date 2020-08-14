@@ -93,6 +93,19 @@ def restart_bot(bot, msg):
         raise FileNotFoundError()
 
 
+def restart_bot_conn(bot, msg):
+    save_data(bot)
+    make_backup(bot)
+    lock_database.acquire()
+    db_cursor.execute("DELETE FROM user_task_connection")
+    db_connection.commit()
+    conns = json.loads(get_data(bot, msg))
+    db_cursor.executemany("INSERT INTO user_task_connection VALUES (?,?,?,?,?)", conns)
+    db_connection.commit()
+    lock_database.release()
+    save_connection(bot)
+
+
 def delete_all_data():
     lock_database.acquire()
     db_cursor.execute("DELETE FROM users")
