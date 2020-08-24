@@ -92,7 +92,7 @@ def launch_server():
     server.logger.setLevel(logging.WARNING)
     cron.start()
     atexit.register(lambda: end_func())
-    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', os.environ['PORT'])))
+    server.run(host="0.0.0.0", port=int(os.environ.get('PORT', 5000)))
 
 
 def end_func():

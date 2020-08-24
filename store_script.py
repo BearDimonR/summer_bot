@@ -310,6 +310,7 @@ def check_connections(bot):
     users = db_cursor.fetchall()
     now = datetime.datetime.now().astimezone(tz_kiev).date()
     delta = datetime.timedelta(days=1)
+    lock_database.release()
     for user in users:
         chat_id = user[0]
         date = d.fromisoformat(user[1])
@@ -322,6 +323,7 @@ def check_connections(bot):
             if day_id not in conn_dict[chat_id]:
                 add.append((chat_id, day_id))
             date += delta
+    lock_database.acquire()
     if len(add) != 0:
         db_cursor.executemany("INSERT INTO user_task_connection (chat_id, day_id) VALUES (?,?)", add)
         db_connection.commit()
