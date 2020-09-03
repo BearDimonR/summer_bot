@@ -34,7 +34,7 @@ tz_kiev = pytz.timezone('Europe/Kiev')
 
 data_path = os.path.join(os.path.dirname(__file__), 'bot.properties')
 
-g = Github('BearDimonR', 'dimon2001_bot_SB_temp')
+g = Github('example', 'example')
 repo = g.get_user().get_repo('files')
 commit_message = 'update bot.properties'
 commit_lock = threading.Lock()
